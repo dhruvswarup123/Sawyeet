@@ -16,21 +16,21 @@ def get_centroid(frame):
     frame = cv2.GaussianBlur(frame, (15, 15), 0)
     image = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
  
-    # # lower boundary RED color range values; Hue (0 - 10)
-    # lower1 = np.array([0, 100, 20])
-    # upper1 = np.array([10, 255, 255])
+    # lower boundary RED color range values; Hue (0 - 10)
+    lower1 = np.array([0, 100, 20])
+    upper1 = np.array([10, 255, 255])
     
-    # # upper boundary RED color range values; Hue (160 - 180)
-    # lower2 = np.array([160,100,20])
-    # upper2 = np.array([179,255,255])
+    # upper boundary RED color range values; Hue (160 - 180)
+    lower2 = np.array([160,100,20])
+    upper2 = np.array([179,255,255])
 
-    lower1 = (20, 80, 20)
-    upper1 = (40, 255, 255)
+    # lower1 = (20, 80, 20)
+    # upper1 = (40, 255, 255)
     
     lower_mask = cv2.inRange(image, lower1, upper1)
-    # upper_mask = cv2.inRange(image, lower2, upper2)
+    upper_mask = cv2.inRange(image, lower2, upper2)
     
-    full_mask = lower_mask # + upper_mask
+    full_mask = lower_mask + upper_mask
     full_mask = cv2.erode(full_mask, None, iterations=2)
     full_mask = cv2.dilate(full_mask, None, iterations=2)
     full_mask = cv2.morphologyEx(full_mask, cv2.MORPH_OPEN, np.ones((30, 30), np.uint8))
@@ -66,7 +66,7 @@ def listener():
     
 
     # rospy.spin()
-    cap = cv2.VideoCapture('sample_v1.mp4')
+    cap = cv2.VideoCapture('sample.mp4')
 
     # Check if camera opened successfully
     if (cap.isOpened()== False): 
