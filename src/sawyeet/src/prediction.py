@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 import rospy
 from geometry_msgs.msg import Point
+from geometry_msgs.msg import PoseStamped
+from tf.transformations import quaternion_from_euler
 import numpy as np
+import math
 
 pub = rospy.Publisher('des_end', Point, queue_size=10)
 
@@ -33,10 +36,15 @@ def callback(data):
     des_zf = perpendicular_fit(prev_y, prev_z)
     des_xf = parallel_fit(prev_y, prev_x)
 
-    point = Point()
-    point.x = des_xf
-    point.y = des_yf
-    point.z = des_zf
+    pose = PoseStamped()
+    pose.position.x = des_xf
+    pose.position.y = des_yf
+    pose.position.z = des_zf
+    roll = 0.0
+    pitch = math.atan((des_zf - prev_z[0])/(des_yf - prev_y[0])) 
+    yaw = math.atan((des_xf - prev_x[0])/(des_yf - prev_y[0]))
+    quat = quaternion_from_euler([roll, pitch, yaw])
+    pose.orientation = quat
     pub.publish(point)
 
 
