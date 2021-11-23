@@ -17,7 +17,7 @@ def get_mask(frame, color=COLOR):
 
     if color == "red":
         # lower boundary RED color range values; Hue (0 - 10)
-        lower1 = np.array([0, 100, 20])
+        lower1 = np.array([0, 100, 25])
         upper1 = np.array([10, 255, 255])
         
         # upper boundary RED color range values; Hue (160 - 180)
@@ -67,6 +67,7 @@ def get_centroid(frame):
     cnts = imutils.grab_contours(cnts)
     center = None
     radius = 0
+    c = []
     
     if len(cnts) > 0:
         # find the largest contour in the mask
@@ -80,7 +81,7 @@ def get_centroid(frame):
         M = cv2.moments(c)
         center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
-    return center
+    return center, c
 
 
 pts = []
@@ -88,24 +89,25 @@ pub = rospy.Publisher('centroids', Point, queue_size=10)
 def callback(data):
     bridge = CvBridge()
     frame = bridge.imgmsg_to_cv2(data, desired_encoding='passthrough')
-    center = get_centroid(frame)
+    # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    # center = get_centroid(frame)
 
-    if center:
-        cv2.circle(frame, center, 5, (0, 0, 255), -1)
-        pts.append(center)
-        point = Point()
-        point.x = center[0]
-        point.y = center[1]
-        pub.publish(point)
+    # if center:
+    #     cv2.circle(frame, center, 5, (0, 0, 255), -1)
+    #     pts.append(center)
+    #     point = Point()
+    #     point.x = center[0]
+    #     point.y = center[1]
+    #     pub.publish(point)
 
-    # Draw the trail behind the object
-    for i in range(1, len(pts)):
-        if pts[i - 1] is None or pts[i] is None:
-            continue
+    # # Draw the trail behind the object
+    # for i in range(1, len(pts)):
+    #     if pts[i - 1] is None or pts[i] is None:
+    #         continue
 
-        if i > (len(pts) - 100):
-            thickness = 5
-            cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)             
+    #     if i > (len(pts) - 100):
+    #         thickness = 5
+    #         cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)             
         
     cv2.imshow("frame", frame)
     cv2.waitKey(1)
@@ -113,7 +115,7 @@ def callback(data):
 
 def listener():
     rospy.init_node('ball_tracker', anonymous=True)
-    rospy.Subscriber("image_raw", Image, callback)
+    rospy.Subscriber("/camera/color/image_raw", Image, callback)
     rospy.spin()
 
 
