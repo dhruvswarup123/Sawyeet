@@ -1,32 +1,19 @@
 #!/usr/bin/env python
-"""Skeleton code for Lab 6
-Course: EECS C106A, Fall 2019
-Author: Amay Saxena
-
-This file implements a ROS node that subscribes to topics for RGB images,
-pointclouds, and camera calibration info, and uses the functions you
-implemented to publish a segmented pointcloud to the topic /segmented_points.
-
-Once you are confident in your implementation in image_segmentation.py and
-pointcloud_segmentation.py, run this file to begin publishing a segmented
-pointcloud.
-"""
 
 from __future__ import print_function
+
 from collections import deque
 
-import rospy
+import cv2
 import message_filters
-import ros_numpy
+import numpy as np
+import rospy
 import tf
 
-from sensor_msgs.msg import Image, CameraInfo, PointCloud2
-
-import numpy as np
-import cv2
-
-from cv_bridge import CvBridge
 from ball_tracker import get_centroid
+from cv_bridge import CvBridge
+from geometry_msgs import Point
+from sensor_msgs.msg import CameraInfo, Image
 
 
 def get_camera_matrix(camera_info_msg):
@@ -46,8 +33,7 @@ class PointcloudProcess:
         self.listener = tf.TransformListener()
         
         # Publishers
-        self.points_pub = rospy.Publisher(points_pub_topic, PointCloud2, queue_size=10)
-        self.image_pub = rospy.Publisher('segmented_image', Image, queue_size=10)
+        self.points_pub = rospy.Publisher(points_pub_topic, Point, queue_size=10)
         
         # Time sync
         ts = message_filters.ApproximateTimeSynchronizer([points_sub, image_sub, caminfo_sub],
@@ -70,14 +56,12 @@ class PointcloudProcess:
             
     def publish_once_from_queue(self):
         if self.messages:
-            depths, rgb_image, intrinsic_matrix = self.messages.pop()
+            depths, image, intrinsic_matrix = self.messages.pop()
             cv2.imshow("depth", depths)
-            cv2.imshow("image", rgb_image)
+            cv2.imshow("image", image)
             cv2.waitKey(1)
-            # print(depths.shape)
-            # print(rgb_image.shape)
 
-            center, points = get_centroid(rgb_image)
+            center, points = get_centroid(image)
             if center:
                 depth = 0
                 total = 0
@@ -91,31 +75,26 @@ class PointcloudProcess:
                 homog = np.array([center[0], center[1], 1])
                 homog_X = avg_depth * np.dot(np.linalg.inv(intrinsic_matrix), homog)
                 homog_X += np.array([0.0106, 0.0175, 0.0125]) # WRT center of realsense
-                
+                point = Point()
+
+                point.x = homog_X[0]
+                point.y = homog_X[1]
+                point.z = homog_X[2]
+
                 print(homog_X)
-            
 
-
-        ########################
-
-
-    '''
-    /camera/color/camera_info:          sensor_msgs/CameraInfo
-    /camera/color/image_raw:            sensor_msgs/Image           --- THIS ONE
-    /camera/depth/color/points:         sensor_msgs/PointCloud2
-    /camera/depth/image_rect_raw:       sensor_msgs/Image
-    /camera/depth/metadata:             realsense2_camera/Metadata
-    /camera/aligned_depth_to_color/image_raw     sensor_msgs/Image --- DEPTH
-    '''
+                self.points_pub.publish(point)
+        
 
 def main():
     CAM_INFO_TOPIC = '/camera/color/camera_info'
     RGB_IMAGE_TOPIC = '/camera/color/image_raw'
-    ALIGNED_DEPTH_TOPIC = '/camera/depth/image_rect_raw' #MODIFY TO ALIGNED
-    # ALIGNED_DEPTH_TOPIC = '/camera/aligned_depth_to_color/image_raw'
-    POINTS_PUB_TOPIC = 'segmented_points'
+    ALIGNED_DEPTH_TOPIC = '/camera/aligned_depth_to_color/image_raw'
+    POINTS_PUB_TOPIC = '/sawyeet/ball_coords'
 
-    rospy.init_node('realsense_listener')
+    # ALIGNED_DEPTH_TOPIC = '/camera/depth/image_rect_raw' #MODIFY TO ALIGNED
+
+    rospy.init_node('sawyeet_tracker')
     process = PointcloudProcess(ALIGNED_DEPTH_TOPIC, RGB_IMAGE_TOPIC, CAM_INFO_TOPIC, POINTS_PUB_TOPIC)
     r = rospy.Rate(15)
 

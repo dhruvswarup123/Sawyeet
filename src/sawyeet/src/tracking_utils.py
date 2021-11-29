@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-import rospy
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
-from geometry_msgs.msg import Point
 
 import cv2
 import imutils
@@ -10,7 +6,6 @@ import numpy as np
 
 RADIUS_THRESHOLD = 10
 COLOR = "red"
-
 
 def get_mask(frame, color=COLOR):
     # Hue color wheel https://cvexplained.wordpress.com/2020/04/28/color-detection-hsv/
@@ -84,11 +79,11 @@ def get_centroid(frame):
     return center, c
 
 
-pts = []
-pub = rospy.Publisher('centroids', Point, queue_size=10)
-def callback(data):
-    bridge = CvBridge()
-    frame = bridge.imgmsg_to_cv2(data, desired_encoding='passthrough')
+# pts = []
+# pub = rospy.Publisher('centroids', Point, queue_size=10)
+# def callback(data):
+#     bridge = CvBridge()
+#     frame = bridge.imgmsg_to_cv2(data, desired_encoding='passthrough')
     # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     # center = get_centroid(frame)
 
@@ -109,15 +104,15 @@ def callback(data):
     #         thickness = 5
     #         cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)             
         
-    cv2.imshow("frame", frame)
-    cv2.waitKey(1)
+    # cv2.imshow("frame", frame)
+    # cv2.waitKey(1)
 
 
-def listener():
-    rospy.init_node('ball_tracker', anonymous=True)
-    rospy.Subscriber("/camera/color/image_raw", Image, callback)
-    rospy.spin()
+# def listener():
+#     rospy.init_node('ball_tracker', anonymous=True)
+#     rospy.Subscriber("/camera/color/image_raw", Image, callback)
+#     rospy.spin()
 
 
-if __name__ == '__main__':
-    listener()
+# if __name__ == '__main__':
+#     listener()

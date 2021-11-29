@@ -6,7 +6,7 @@ from tf.transformations import quaternion_from_euler
 import numpy as np
 import math
 
-pub = rospy.Publisher('des_end', Point, queue_size=10)
+pub = rospy.Publisher('/sawyeet/des_end', Point, queue_size=10)
 
 prev_x = []
 prev_y = []
@@ -45,12 +45,12 @@ def callback(data):
     yaw = math.atan((des_xf - prev_x[0])/(des_yf - prev_y[0]))
     quat = quaternion_from_euler([roll, pitch, yaw])
     pose.orientation = quat
-    pub.publish(point)
+    pub.publish(pose)
 
 
 def listener():
     rospy.init_node('ball_prediction', anonymous=True)
-    rospy.Subscriber('centroids', Point, callback)
+    rospy.Subscriber('/sawyeet/ball_coords', Point, callback)
     rospy.spin()
 
 
