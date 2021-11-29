@@ -75,11 +75,22 @@ class PointcloudProcess:
                 homog = np.array([center[0], center[1], 1])
                 homog_X = avg_depth * np.dot(np.linalg.inv(intrinsic_matrix), homog)
                 homog_X += np.array([0.0106, 0.0175, 0.0125]) # WRT center of realsense
+
+                # Convert to sawyers base
+                R_real_to_saw = np.array([
+                    [1, 0, 0],
+                    [0, 1, 0],
+                    [0, 0, 1],
+                ])
+
+                P_real_to_saw = np.array([0.0106, 0.0175, 0.0125])
+
+                point_sawyer = np.dot(R_real_to_saw, homog_X) + P_real_to_saw
                 point = Point()
 
-                point.x = homog_X[0]
-                point.y = homog_X[1]
-                point.z = homog_X[2]
+                point.x = point_sawyer[0]
+                point.y = point_sawyer[1]
+                point.z = point_sawyer[2]
 
                 print(homog_X)
 
