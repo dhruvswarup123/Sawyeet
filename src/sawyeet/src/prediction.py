@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import rospy
-from geometry_msgs.msg import Point
 from geometry_msgs.msg import PoseStamped
 from tf.transformations import quaternion_from_euler
 import numpy as np
 import math
 
-pub = rospy.Publisher('/sawyeet/des_end', Point, queue_size=10)
+pub = rospy.Publisher('/sawyeet/des_end', PoseStamped, queue_size=10)
 
 prev_x = []
 prev_y = []
