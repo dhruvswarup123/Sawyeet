@@ -4,7 +4,7 @@ import cv2
 import imutils
 import numpy as np
 
-RADIUS_THRESHOLD = 10
+RADIUS_THRESHOLD = 0.01
 COLOR = "red"
 
 def get_mask(frame, color=COLOR):

@@ -10,9 +10,9 @@ import numpy as np
 import rospy
 import tf
 
-from ball_tracker import get_centroid
+from tracking_utils import get_centroid
 from cv_bridge import CvBridge
-from geometry_msgs import Point
+from geometry_msgs.msg import Point
 from sensor_msgs.msg import CameraInfo, Image
 
 
@@ -57,12 +57,14 @@ class PointcloudProcess:
     def publish_once_from_queue(self):
         if self.messages:
             depths, image, intrinsic_matrix = self.messages.pop()
-            cv2.imshow("depth", depths)
-            cv2.imshow("image", image)
-            cv2.waitKey(1)
 
+            tracking = np.zeros((image.shape[0],image.shape[1],3), np.uint8)
             center, points = get_centroid(image)
+
             if center:
+
+                tracking[max(0,center[1]-20):min(image.shape[0], center[1]+20), max(0,center[0]-20):min(image.shape[1], center[0]+20)] = (0,255,0)
+
                 depth = 0
                 total = 0
                 for point_array in points:
@@ -95,6 +97,11 @@ class PointcloudProcess:
                 print(homog_X)
 
                 self.points_pub.publish(point)
+
+            cv2.imshow("depth", depths)
+            cv2.imshow("image", image)
+            cv2.imshow("tracking", tracking)
+            cv2.waitKey(1)
         
 
 def main():
