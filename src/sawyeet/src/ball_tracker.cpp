@@ -20,6 +20,19 @@
 
 #include <cv_bridge/cv_bridge.h>
 
+#include <Eigen/Dense>
+
+#define ORANGE
+
+#ifdef TENNIS
+    #define COLOR_MIN 20, 80, 45
+    #define COLOR_MAX 45, 255, 255
+#endif
+#ifdef ORANGE
+    #define COLOR_MIN 0, 150, 50
+    #define COLOR_MAX 35, 255, 255
+#endif
+
 using namespace std;
 using namespace sensor_msgs;
 using namespace geometry_msgs;
@@ -41,9 +54,36 @@ cv::Mat state;
 cv::Mat meas;
 // <<<< Globals for kalman tracking
 
-void chatterCallback(const Image::ConstPtr& image_msg, const CameraInfo::ConstPtr& camerainfo_msg, const Image::ConstPtr& points_msg){
+void chatterCallback(const Image::ConstPtr& image_msg, const CameraInfo::ConstPtr& camerainfo_msg, const Image::ConstPtr& depths_msg){
+    // >>>> First do the extraction of depths and cam matrix
+    //TODO easier way?
+    Eigen::Matrix3f camera_matrix;
+    camera_matrix(0, 0) = camerainfo_msg->K[0];
+    camera_matrix(0, 1) = camerainfo_msg->K[1];
+    camera_matrix(0, 2) = camerainfo_msg->K[2];
+    camera_matrix(1, 0) = camerainfo_msg->K[3];
+    camera_matrix(1, 1) = camerainfo_msg->K[4];
+    camera_matrix(1, 2) = camerainfo_msg->K[5];
+    camera_matrix(2, 0) = camerainfo_msg->K[6];
+    camera_matrix(2, 1) = camerainfo_msg->K[7];
+    camera_matrix(2, 2) = camerainfo_msg->K[8];
+
+    cv::Mat depths;
+    cv_bridge::CvImagePtr cv_depths_ptr;
+    
+    try{ //TODO is the depth grayscale
+      cv_depths_ptr = cv_bridge::toCvCopy(depths_msg, sensor_msgs::image_encodings::TYPE_16UC1);
+      cv_depths_ptr->image.copyTo(depths);
+    }
+    catch (cv_bridge::Exception& e){
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+      return;
+    }
+
+    // <<<< Depths
+    
     double precTick = ticks;
-    ticks = (points_msg->header).stamp.toSec();
+    ticks = (depths_msg->header).stamp.toSec();
 
     // TODO: Get time difference here
     double dT = ticks - precTick;
@@ -85,6 +125,33 @@ void chatterCallback(const Image::ConstPtr& image_msg, const CameraInfo::ConstPt
         cv::circle(res, center, 2, CV_RGB(255,0,0), -1);
 
         cv::rectangle(res, predRect, CV_RGB(255,0,0), 2);
+
+        // >>>> Avg Depth
+        float avg_depth = depths.at<float>(center.x, center.y) * 0.001;
+        // <<<< Avg Depth
+
+        // >>>> Homog pixels
+        Eigen::Matrix<float, 3, 1> homog_pixels;
+        homog_pixels(0, 0) = center.x;
+        homog_pixels(1, 0) = center.y;
+        homog_pixels(2, 0) = 1;
+        // <<<< Homog pixels
+
+        // >>>> transformation from depths to realsense
+        Eigen::Matrix<float, 3, 1> camera_to_realsense;
+        camera_to_realsense(0, 0) = 0.0106;
+        camera_to_realsense(1, 0) = 0.0175;
+        camera_to_realsense(2, 0) = 0.0125;
+        // <<<< transformation from depths to realsense
+
+        // >>> 3d coords
+        Eigen::Matrix<float, 3, 1> coords_3d = camera_matrix.inverse() * homog_pixels * avg_depth;
+        coords_3d += camera_to_realsense;
+        // <<< 3d coords
+
+        cout << "Center: " << center << endl;
+        printf("3d coords: [%0.3f, %0.3f, %0.3f]\n", coords_3d[0], coords_3d[1], coords_3d[2]);
+        // cout << "3d coords: " << coords_3d << endl;
     }
 
     // >>>>> Noise smoothing
@@ -102,8 +169,10 @@ void chatterCallback(const Image::ConstPtr& image_msg, const CameraInfo::ConstPt
     cv::Mat rangeRes = cv::Mat::zeros(frame.size(), CV_8UC1);
 
     //TODO: Add if block for color?
-    cv::inRange(frmHsv, cv::Scalar(20, 80, 45),
-                        cv::Scalar(45, 255, 255), rangeRes);
+
+    cv::inRange(frmHsv, cv::Scalar(COLOR_MIN),
+                        cv::Scalar(COLOR_MAX), rangeRes);
+
     // <<<<< Color Thresholding
 
     // >>>>> Improving the result
@@ -207,9 +276,10 @@ int main(int argc, char **argv)
 
     // ros::Subscriber sub = nh.subscribe("chatter", 1000, chatterCallback);
 
-    message_filters::Subscriber<Image> image_sub(nh, "image", 1);
-    message_filters::Subscriber<CameraInfo> info_sub(nh, "camera_info", 1);
-    message_filters::Subscriber<Image> points_sub(nh, "points", 1);
+    message_filters::Subscriber<Image> image_sub(nh, "/camera/color/image_raw", 1);
+    message_filters::Subscriber<CameraInfo> info_sub(nh, "/camera/color/camera_info", 1);
+    // message_filters::Subscriber<Image> points_sub(nh, "/camera/aligned_depth_to_color/image_raw", 1);
+    message_filters::Subscriber<Image> points_sub(nh, "/camera/depth/image_rect_raw", 1);
 
     TimeSynchronizer<Image, CameraInfo, Image> sync(image_sub, info_sub, points_sub, 10);
     sync.registerCallback(boost::bind(&chatterCallback, _1, _2, _3));
