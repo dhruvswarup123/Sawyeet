@@ -4,3 +4,11 @@ devel/
 install/
 *.mp4
 *.bag
+CMakeFiles/
+.idea/
+__pycache__/
+*.swp
+*.pyc 
+*.cmake 
+CMakeCache.txt
+Makefile
