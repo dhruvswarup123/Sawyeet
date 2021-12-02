@@ -41,9 +41,9 @@ cv::Mat state;
 cv::Mat meas;
 // <<<< Globals for kalman tracking
 
-void chatterCallback(const Image::ConstPtr& image_msg, const CameraInfo::ConstPtr& camerainfo_msg, const Points::ConstPtr& points_msg){
+void chatterCallback(const Image::ConstPtr& image_msg, const CameraInfo::ConstPtr& camerainfo_msg, const Image::ConstPtr& points_msg){
     double precTick = ticks;
-    ticks = (double) (points_msg->header).stamp
+    ticks = (points_msg->header).stamp.toSec();
 
     // TODO: Get time difference here
     double dT = ticks - precTick;
@@ -196,9 +196,8 @@ void chatterCallback(const Image::ConstPtr& image_msg, const CameraInfo::ConstPt
 
     // Final result
     cv::imshow("Tracking", res);
-
     // User key
-    ch = cv::waitKey(1);
+    cv::waitKey(1);
 }
 
 int main(int argc, char **argv)
@@ -206,14 +205,14 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "ball_tracker");
     ros::NodeHandle nh;
 
-    ros::Subscriber sub = nh.subscribe("chatter", 1000, chatterCallback);
+    // ros::Subscriber sub = nh.subscribe("chatter", 1000, chatterCallback);
 
     message_filters::Subscriber<Image> image_sub(nh, "image", 1);
     message_filters::Subscriber<CameraInfo> info_sub(nh, "camera_info", 1);
-    message_filters::Subscriber<Point> points_sub(nh, "points", 1);
+    message_filters::Subscriber<Image> points_sub(nh, "points", 1);
 
-    TimeSynchronizer<Image, CameraInfo, Point> sync(image_sub, info_sub, points_sub, 10);
-    sync.registerCallback(boost::bind(&callback, _1, _2, _3));
+    TimeSynchronizer<Image, CameraInfo, Image> sync(image_sub, info_sub, points_sub, 10);
+    sync.registerCallback(boost::bind(&chatterCallback, _1, _2, _3));
 
     // >>>> Kalman Filter
     
