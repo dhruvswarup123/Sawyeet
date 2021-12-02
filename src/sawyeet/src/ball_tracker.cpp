@@ -45,7 +45,7 @@ int main()
 
     cv::Mat state(stateSize, 1, type);  // [x,y,v_x,v_y,w,h]
     cv::Mat meas(measSize, 1, type);    // [z_x,z_y,z_w,z_h]
-    //cv::Mat procNoise(stateSize, 1, type)
+
     // [E_x,E_y,E_v_x,E_v_y,E_w,E_h]
 
     // Transition State Matrix A
@@ -137,10 +137,7 @@ int main()
             kf.transitionMatrix.at<float>(9) = dT;
             // <<<< Matrix A
 
-            cout << "dT:" << endl << dT << endl;
-
             state = kf.predict();
-            cout << "State post:" << endl << state << endl;
 
             cv::Rect predRect;
             predRect.width = state.at<float>(4);
@@ -169,13 +166,15 @@ int main()
         // >>>>> Color Thresholding
         // Note: change parameters for different colors
         cv::Mat rangeRes = cv::Mat::zeros(frame.size(), CV_8UC1);
-        cv::inRange(frmHsv, cv::Scalar(20, 80, 20),
+
+        //TODO: Add if block for color?
+        cv::inRange(frmHsv, cv::Scalar(20, 80, 45),
                             cv::Scalar(45, 255, 255), rangeRes);
         // <<<<< Color Thresholding
 
         // >>>>> Improving the result
         cv::erode(rangeRes, rangeRes, cv::Mat(), cv::Point(-1, -1), 2);
-        cv::dilate(rangeRes, rangeRes, cv::Mat(), cv::Point(-1, -1), 2);
+        // cv::dilate(rangeRes, rangeRes, cv::Mat(), cv::Point(-1, -1), 2);
         // <<<<< Improving the result
 
         // Thresholding viewing
@@ -208,24 +207,10 @@ int main()
         }
         // <<<<< Filtering
 
-        cout << "Balls found:" << ballsBox.size() << endl;
-
         // >>>>> Detection result
         for (size_t i = 0; i < balls.size(); i++)
         {
-            cv::drawContours(res, balls, i, CV_RGB(20,150,20), 1);
-            cv::rectangle(res, ballsBox[i], CV_RGB(0,255,0), 2);
-
-            cv::Point center;
-            center.x = ballsBox[i].x + ballsBox[i].width / 2;
-            center.y = ballsBox[i].y + ballsBox[i].height / 2;
-            cv::circle(res, center, 2, CV_RGB(20,150,20), -1);
-
-            stringstream sstr;
-            sstr << "(" << center.x << "," << center.y << ")";
-            cv::putText(res, sstr.str(),
-                        cv::Point(center.x + 3, center.y - 3),
-                        cv::FONT_HERSHEY_SIMPLEX, 0.5, CV_RGB(20,150,20), 2);
+            cv::drawContours(res, balls, i, CV_RGB(20,150,20), -1);
         }
         // <<<<< Detection result
 
@@ -238,8 +223,6 @@ int main()
             {
                 found = false;
             }
-            /*else
-                kf.statePost = state;*/
         }
         else
         {
@@ -274,8 +257,6 @@ int main()
             }
             else
                 kf.correct(meas); // Kalman Correction
-
-            cout << "Measure matrix:" << endl << meas << endl;
         }
         // <<<<< Kalman Update
 
