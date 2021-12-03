@@ -18,7 +18,7 @@ https://www.myzhar.com/blog/tutorials/tutorial-opencv-ball-tracker-using-kalman-
 #include <opencv2/video/video.hpp>
 #include <vector>
 
-#define ORANGE
+#define TENNIS
 
 #ifdef TENNIS
     #define COLOR_MIN 20, 80, 45
@@ -172,8 +172,6 @@ void chatterCallback(const Image::ConstPtr& image_msg, const CameraInfo::ConstPt
     // >>>>> Color Thresholding
     // Note: change parameters for different colors
     cv::Mat rangeRes = cv::Mat::zeros(frame.size(), CV_8UC1);
-
-    //TODO: Add if block for color?
 
     cv::inRange(frmHsv, cv::Scalar(COLOR_MIN),
                         cv::Scalar(COLOR_MAX), rangeRes);
