@@ -1,1 +1,0 @@
-/scratch/shared/baxter_ws/intera.sh
