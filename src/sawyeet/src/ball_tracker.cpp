@@ -7,7 +7,7 @@ https://www.myzhar.com/blog/tutorials/tutorial-opencv-ball-tracker-using-kalman-
 #include "ros/ros.h"
 #include "sensor_msgs/CameraInfo.h"
 #include "sensor_msgs/Image.h"
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
 #include <message_filters/subscriber.h>
@@ -18,15 +18,20 @@ https://www.myzhar.com/blog/tutorials/tutorial-opencv-ball-tracker-using-kalman-
 #include <opencv2/video/video.hpp>
 #include <vector>
 
-#define TENNIS
+#define NEON
 
 #ifdef TENNIS
-    #define COLOR_MIN 20, 80, 45
+    #define COLOR_MIN 20, 80, 20
     #define COLOR_MAX 45, 255, 255
 #endif
 #ifdef ORANGE
     #define COLOR_MIN 0, 150, 50
     #define COLOR_MAX 35, 255, 255
+#endif
+
+#ifdef NEON
+    #define COLOR_MIN 25, 50, 40
+    #define COLOR_MAX 75, 255, 255
 #endif
 
 using namespace std;
@@ -240,7 +245,7 @@ void chatterCallback(const Image::ConstPtr& image_msg, const CameraInfo::ConstPt
         int temp_total_points = 0;
         float temp_depth_sum = 0;
 
-        for (int i = 0; i < balls[0].size(); i++){
+        /*for (int i = 0; i < balls[0].size(); i++){
             float temp_depth = depths.at<float>(balls[0][i].x, balls[0][i].y) * 0.001;
             if ((temp_depth != 0) && (temp_depth <= 10.0)){
                 temp_total_points++;
@@ -255,8 +260,9 @@ void chatterCallback(const Image::ConstPtr& image_msg, const CameraInfo::ConstPt
         }
         else {
             meas.at<float>(2) = 0;
-        }
-
+        }*/
+		meas.at<float>(2) = 1;
+		cout << depths.at<int>(240,320) << endl;
         meas.at<float>(3) = (float)ballsBox[0].width;
         meas.at<float>(4) = (float)ballsBox[0].height;
 
@@ -307,7 +313,7 @@ int main(int argc, char **argv)
     message_filters::Subscriber<Image> image_sub(nh, "/camera/color/image_raw", 1);
     message_filters::Subscriber<CameraInfo> info_sub(nh, "/camera/color/camera_info", 1);
     // message_filters::Subscriber<Image> points_sub(nh, "/camera/aligned_depth_to_color/image_raw", 1);
-    message_filters::Subscriber<Image> points_sub(nh, "/camera/depth/image_rect_raw", 1);
+    message_filters::Subscriber<Image> points_sub(nh, "/camera/aligned_depth_to_color/image_raw", 1);
 
     chatter_pub = nh.advertise<geometry_msgs::Point>("/sawyeet/ball_coords", 5);
 

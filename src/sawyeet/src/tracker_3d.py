@@ -47,7 +47,7 @@ class PointcloudProcess:
             intrinsic_matrix = get_camera_matrix(info)
             rgb_image = self._bridge.imgmsg_to_cv2(image)
             bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
-            depths = self._bridge.imgmsg_to_cv2(points_msg)
+            depths = self._bridge.imgmsg_to_cv2(points_msg, desired_encoding='passthrough')
         except Exception as e:
             rospy.logerr(e)
             return      
@@ -60,22 +60,22 @@ class PointcloudProcess:
 
             tracking = np.zeros((image.shape[0],image.shape[1],3), np.uint8)
             center, points = get_centroid(image)
-
             if center:
 
-                tracking[max(0,center[1]-20):min(image.shape[0], center[1]+20), max(0,center[0]-20):min(image.shape[1], center[0]+20)] = (0,255,0)
+                image[max(0,center[1]-20):min(image.shape[0], center[1]+20), max(0,center[0]-20):min(image.shape[1], center[0]+20)] = (0,255,0)
 
                 depth = 0
                 total = 0
+                print("center depth", depths[center[1], center[0]])
                 for point_array in points:
                     for point in point_array:
-                        depth += depths[min(point[0], depths.shape[0]-1), min(point[1], depths.shape[1]-1)]
+                        depth += depths[point[1], point[0]]
                         total += 1
                 if total != 0:
                     avg_depth = depth / total * 0.001
-                
+
                 homog = np.array([center[0], center[1], 1])
-                homog_X = avg_depth * np.dot(np.linalg.inv(intrinsic_matrix), homog)
+                homog_X = depths[center[1], center[0]] * np.dot(np.linalg.inv(intrinsic_matrix), homog) * 0.001
                 homog_X += np.array([0.0106, 0.0175, 0.0125]) # WRT center of realsense
 
                 # Convert to sawyers base
@@ -90,17 +90,21 @@ class PointcloudProcess:
                 point_sawyer = np.dot(R_real_to_saw, homog_X) + P_real_to_saw
                 point = Point()
 
-                point.x = point_sawyer[0]
-                point.y = point_sawyer[1]
+                point.x = -point_sawyer[0]
+                point.y = -point_sawyer[1]
                 point.z = point_sawyer[2]
 
-                print(homog_X)
+                # point.x = 0
+                # point.y = 0
+                # point.z = 1.0
+
+                print(point)
 
                 self.points_pub.publish(point)
 
             cv2.imshow("depth", depths)
             cv2.imshow("image", image)
-            cv2.imshow("tracking", tracking)
+            #cv2.imshow("tracking", tracking)
             cv2.waitKey(1)
         
 

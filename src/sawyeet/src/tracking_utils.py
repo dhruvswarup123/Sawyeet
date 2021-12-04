@@ -4,7 +4,7 @@ import cv2
 import imutils
 import numpy as np
 
-RADIUS_THRESHOLD = 0.01
+RADIUS_THRESHOLD = 10
 COLOR = "tennis"
 
 def get_mask(frame, color=COLOR):
@@ -35,12 +35,18 @@ def get_mask(frame, color=COLOR):
         upper = (130, 255, 255)
 
         full_mask = cv2.inRange(frame, lower, upper)
-    
+
     elif color == "tennis":
-        lower = (20, 80, 20)
-        upper = (45, 255, 255)
+        lower = (25, 50, 40)
+        upper = (75, 255, 255)
 
         full_mask = cv2.inRange(frame, lower, upper)
+    
+    # elif color == "tennis":
+    #     lower = (20, 80, 20)
+    #     upper = (45, 255, 255)
+
+    #    full_mask = cv2.inRange(frame, lower, upper)
     
     full_mask = cv2.erode(full_mask, None, iterations=2)
     # full_mask = cv2.dilate(full_mask, None, iterations=2)
@@ -54,7 +60,8 @@ def get_centroid(frame, color=COLOR):
 
     # Blur the frame and convert to hsv color space
     # frame = cv2.GaussianBlur(frame, (15, 15), 0)
-    frame = cv2.medianBlur(frame, 5)
+    #frame = cv2.medianBlur(frame, 5)
+    frame = cv2.GaussianBlur(frame, (5, 5), 3)
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # Get mask that removes pixels that are not that color
@@ -65,7 +72,7 @@ def get_centroid(frame, color=COLOR):
 
     # find contours in the mask and initialize the current
 	# (x, y) center of the ball
-    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cnts = imutils.grab_contours(cnts)
     center = None
     radius = 0
@@ -78,13 +85,12 @@ def get_centroid(frame, color=COLOR):
         # x, y is center of enclosing circle, NOT the centroid
         ((x, y), radius) = cv2.minEnclosingCircle(c)
         if radius < RADIUS_THRESHOLD:
-            return None
+            return None, None
 
         M = cv2.moments(c)
-        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        center = [int(x), int(y)]
 
-    return center, c, mask
-
+    return center, c
 
 # pts = []
 # pub = rospy.Publisher('centroids', Point, queue_size=10)

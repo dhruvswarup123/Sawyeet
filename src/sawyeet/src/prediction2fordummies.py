@@ -6,7 +6,7 @@ from tf.transformations import quaternion_from_euler
 import numpy as np
 import math
 
-pub = rospy.Publisher('/sawyeet/des_end', PoseStamped, queue_size=1)
+pub = rospy.Publisher('/sawyeet/des_end', PoseStamped, queue_size=10)
 
 prev_x = []
 prev_y = []
@@ -46,14 +46,15 @@ def callback(data):
     pitch = math.atan((des_zf - prev_z[0])/(des_yf - prev_y[0])) 
     yaw = math.atan((des_xf - prev_x[0])/(des_yf - prev_y[0]))
     quat = quaternion_from_euler(roll, pitch, yaw)
-    des_pose.pose.orientation.x = 0#quat[0]
-    des_pose.pose.orientation.y = 0#quat[1]
-    des_pose.pose.orientation.z = 0#quat[2]
-    des_pose.pose.orientation.w = 1#quat[3]
+    des_pose.pose.orientation.x = quat[0]
+    des_pose.pose.orientation.y = quat[1]
+    des_pose.pose.orientation.z = quat[2]
+    des_pose.pose.orientation.w = quat[3]
     print(des_xf, des_yf, des_zf)
-    des_pose.pose.position.x = data.x
-    des_pose.pose.position.y = data.y
+    des_pose.pose.position.x = 0.8
+    des_pose.pose.position.y = 0.05
     des_pose.pose.position.z = 0
+    print(des_pose.pose.position.x)
     pub.publish(des_pose)
 
 
