@@ -37,7 +37,7 @@ def get_mask(frame, color=COLOR):
         full_mask = cv2.inRange(frame, lower, upper)
 
     elif color == "tennis":
-        lower = (25, 50, 40)
+        lower = (25, 100, 60)
         upper = (75, 255, 255)
 
         full_mask = cv2.inRange(frame, lower, upper)

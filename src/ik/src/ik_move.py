@@ -57,14 +57,14 @@ def move(latest_pose, c):
         orien_const.orientation.y = -1.0
         orien_const.orientation.z = 0.0
         orien_const.orientation.w = 0.0
-        orien_const.absolute_x_axis_tolerance = 0.2
-        orien_const.absolute_y_axis_tolerance = 0.2
-        orien_const.absolute_z_axis_tolerance = 0.2
+        orien_const.absolute_x_axis_tolerance = 0.01
+        orien_const.absolute_y_axis_tolerance = 0.01
+        orien_const.absolute_z_axis_tolerance = 0.01
         orien_const.weight = 1.0
 
         plan = planner.plan_to_pose(goal_1, [orien_const])
         
-        if not c.execute_path(plan,10, False):
+        if not c.execute_path(plan,100, False):
             raise Exception("Execution failed")
     
     except Exception as e:
