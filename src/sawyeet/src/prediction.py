@@ -15,6 +15,7 @@ import math
 import sys
 
 ###################################################################################
+#CONSTANTS
 
 NUM_FRAMES = 5
 G = 9.81
@@ -22,6 +23,7 @@ ALPHA = float(sys.argv[1])
 BETA = float(sys.argv[2])
 
 ###################################################################################
+#GLOBAL VARIABLES
 
 IS_INITIALIZED = False
 pub = rospy.Publisher('/sawyeet/des_end', PoseStamped, queue_size=1)
@@ -34,7 +36,6 @@ prev_time = None
 xdata = []
 ydata = []
 zdata = []
-found = 0
 
 curr_x = Value(c_double, 0)
 curr_y = Value(c_double, 0)
@@ -44,26 +45,7 @@ color = Value('i', 0)
 last = Value('i', 0)
 
 ###################################################################################
-
-def intialize(coords):
-    global prev_state, prev_time, IS_INITIALIZED
-    prev_time = rospy.Time.now().to_sec() 
-    prev_state[0] = coords.x
-    prev_state[1] = coords.y
-    prev_state[2] = coords.z
-    prev_state[3] = 0.
-    prev_state[4] = 0.
-    prev_state[5] = 0.
-    curr_state = prev_state
-    pred_state = prev_state
-    IS_INITIALIZED = True
-    xdata.append(coords.x)
-    ydata.append(coords.y)
-    zdata.append(coords.z)
-    return
-
-
-###################################################################################
+#GRAPHING & ANIMATION
 
 def runGraph(curr_x, curr_y, curr_z, published, color, last):
     def animate(i):
@@ -93,9 +75,42 @@ def runGraph(curr_x, curr_y, curr_z, published, color, last):
     plt.close()
 
 ###################################################################################
+#PREDICTED OUTPUT GRAPHING
+
+def plot_predicted():
+    global G, color, curr_x
+    color.value = 1
+    delta = 0.01
+    time = 0
+    while time < (-(curr_state[2])/curr_state[5]):
+        curr_x.value = curr_state[0] + curr_state[3] * time
+        curr_y.value = curr_state[1] + curr_state[4] * time - G * time**2 / 2. 
+        curr_z.value = curr_state[2] + curr_state[5] * time
+        time += delta 
+        sleep(0.1)
+
+###################################################################################
+#INITIALIZATIOon
+
+def intialize(coords):
+    global prev_state, prev_time, IS_INITIALIZED, curr_state, pred_state
+    prev_time = rospy.Time.now().to_sec() 
+    prev_state[0] = coords.x
+    prev_state[1] = coords.y
+    prev_state[2] = coords.z
+    prev_state[3] = 0.
+    prev_state[4] = 0.
+    prev_state[5] = 0.
+    curr_state = prev_state
+    pred_state = prev_state
+    IS_INITIALIZED = True
+    return
+
+###################################################################################
+#STATE UPDATE AND KALMAN FILTER
 
 def stateCallback(coords):
-    global prev_state, prev_time, pred_state, curr_state, meas_state, IS_INITIALIZED, ALPHA, G, curr_x, curr_y, curr_z, found
+    global prev_state, prev_time, pred_state, curr_state, meas_state, IS_INITIALIZED, ALPHA, G, curr_x, curr_y, curr_z
     curr_time = rospy.Time.now().to_sec() 
     dT = (curr_time - prev_time)
     prev_time = curr_time
@@ -117,8 +132,6 @@ def stateCallback(coords):
         curr_y.value = meas_state[1]
         curr_z.value = meas_state[2]
 
-        found = found + 1
-
         pred_state = np.zeros((6,1))
         pred_state[0] = prev_state[0] + prev_state[3] * dT
         pred_state[1] = prev_state[1] + prev_state[4] * dT - G * dT**2 / 2.
@@ -133,12 +146,13 @@ def stateCallback(coords):
         prev_state = curr_state
 
 ###################################################################################
+#PUBLISH FUNCTION
 
-def publish_pose(curr_state):
+def publish_pose(pred_state):
     des_pose = PoseStamped()
-    des_pose.pose.position.x = curr_state[0]
-    des_pose.pose.position.y = curr_state[1]
-    des_pose.pose.position.z = curr_state[2]
+    des_pose.pose.position.x = pred_state[0]
+    des_pose.pose.position.y = pred_state[1]
+    des_pose.pose.position.z = pred_state[2]
     des_pose.pose.orientation.x = 0.
     des_pose.pose.orientation.y = 0.
     des_pose.pose.orientation.z = 0.
@@ -146,6 +160,7 @@ def publish_pose(curr_state):
     pub.publish(des_pose)
      
 ###################################################################################
+#ESTIMATION FUNCTION -- ONCE BALL GOES OUT OF FRAME
 
 def estimation():
     global prev_state, curr_state, meas_state, G
@@ -157,28 +172,15 @@ def estimation():
         pub_state[1] = curr_state[1] + curr_state[4] * pred_time - G * pred_time**2 / 2. 
         meas = np.array([float(meas_state[0]), float(meas_state[1]), float(meas_state[2])])
         print(np.round(meas,2), np.round(pub_state,2), np.round(curr_state[:3].reshape(-1),2))
-        publish_pose(meas_state)
+        publish_pose(pub_state)
         return True
     return False
 
 ###################################################################################
-
-def plot_predicted():
-    global G, color, curr_x
-    color.value = 1
-    delta = 0.01
-    time = 0
-    while time < (-(curr_state[2])/curr_state[5]):
-        curr_x.value = curr_state[0] + curr_state[3] * time
-        curr_y.value = curr_state[1] + curr_state[4] * time - G * time**2 / 2. 
-        curr_z.value = curr_state[2] + curr_state[5] * time
-        time += delta 
-        sleep(0.1)
-
-###################################################################################
+#MAIN LISTENER
 
 def listener():
-    global prev_time, curr_state, curr_x, curr_y, curr_z, published, color, found
+    global prev_time, curr_state, curr_x, curr_y, curr_z, published, color
     rospy.init_node('ball_prediction', anonymous=True)
     prev_time = rospy.Time.now().to_sec()
     rospy.Subscriber('/sawyeet/ball_coords', Point, stateCallback)
@@ -192,7 +194,6 @@ def listener():
             plot_predicted()
             published.value = 1
             p.terminate()
-            print(found)
             exit(0)
         rate.sleep()
 
@@ -200,3 +201,5 @@ def listener():
 
 if __name__ == '__main__':
     listener()
+
+###################################################################################
