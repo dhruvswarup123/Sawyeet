@@ -30,15 +30,21 @@ curr_state = np.zeros((6,1))
 meas_state = np.zeros((6,1))
 pred_state = np.zeros((6,1))
 prev_time = None
+curr_time = None
+old_time = None
+
+old_x = 0.
+old_y = 0.
+old_z = 0.
+curr_frame = 0
 
 xdata = []
 ydata = []
 zdata = []
-found = 0
 
-curr_x = Value(c_double, 0)
-curr_y = Value(c_double, 0)
-curr_z = Value(c_double, 5)
+curr_x = Value(c_double, -20)
+curr_y = Value(c_double, -20)
+curr_z = Value(c_double, -20)
 published = Value('i', 0)
 color = Value('i', 0)
 last = Value('i', 0)
@@ -46,7 +52,7 @@ last = Value('i', 0)
 ###################################################################################
 
 def intialize(coords):
-    global prev_state, prev_time, IS_INITIALIZED
+    global prev_state, prev_time, IS_INITIALIZED, old_x, old_y, old_z, curr_state, pred_state, old_time
     prev_time = rospy.Time.now().to_sec() 
     prev_state[0] = coords.x
     prev_state[1] = coords.y
@@ -54,14 +60,13 @@ def intialize(coords):
     prev_state[3] = 0.
     prev_state[4] = 0.
     prev_state[5] = 0.
+    old_x = coords.x
+    old_y = coords.y
+    old_z = coords.z
     curr_state = prev_state
     pred_state = prev_state
     IS_INITIALIZED = True
-    xdata.append(coords.x)
-    ydata.append(coords.y)
-    zdata.append(coords.z)
-    return
-
+    old_time = prev_time
 
 ###################################################################################
 
@@ -95,7 +100,7 @@ def runGraph(curr_x, curr_y, curr_z, published, color, last):
 ###################################################################################
 
 def stateCallback(coords):
-    global prev_state, prev_time, pred_state, curr_state, meas_state, IS_INITIALIZED, ALPHA, G, curr_x, curr_y, curr_z, found
+    global prev_state, prev_time, pred_state, curr_state, meas_state, IS_INITIALIZED, ALPHA, G, curr_x, curr_y, curr_z, old_x, old_y, old_z, old_time, curr_frame, curr_time
     curr_time = rospy.Time.now().to_sec() 
     dT = (curr_time - prev_time)
     prev_time = curr_time
@@ -113,11 +118,10 @@ def stateCallback(coords):
         meas_state[4] = (coords.y - prev_state[1])/dT
         meas_state[5] = (coords.z - prev_state[2])/dT
 
-        curr_x.value = meas_state[0]
-        curr_y.value = meas_state[1]
-        curr_z.value = meas_state[2]
-
-        found = found + 1
+        if curr_frame > 0:
+            curr_x.value = meas_state[0]
+            curr_y.value = meas_state[1]
+            curr_z.value = meas_state[2]
 
         pred_state = np.zeros((6,1))
         pred_state[0] = prev_state[0] + prev_state[3] * dT
@@ -127,8 +131,19 @@ def stateCallback(coords):
         pred_state[4] = prev_state[4] - G * dT
         pred_state[5] = prev_state[5]
 
-        update_matrix = np.array([[ALPHA],[BETA],[ALPHA],[ALPHA],[BETA],[ALPHA]])
+        update_matrix = np.array([[ALPHA],[ALPHA],[ALPHA],[BETA],[BETA],[BETA]])
         curr_state = pred_state + update_matrix * (meas_state - pred_state)
+
+        curr_frame = curr_frame + 1
+
+        if curr_frame % NUM_FRAMES == 0:
+            #ballistic_estimate()
+            old_x = curr_state[0]
+            old_y = curr_state[1]
+            old_z = curr_state[2]
+            curr_frame = 0
+            old_time = curr_time
+
 
         prev_state = curr_state
 
@@ -146,9 +161,9 @@ def publish_pose(curr_state):
     pub.publish(des_pose)
      
 ###################################################################################
-
+#TODO
 def estimation():
-    global prev_state, curr_state, meas_state, G
+    global prev_state, curr_state, meas_state, G, prev_time
     if rospy.Time.now().to_sec() - prev_time > 0.3 and curr_state[5] != 0:
         pred_time = -(curr_state[2])/curr_state[5]
         #print(pred_time)
@@ -161,9 +176,48 @@ def estimation():
         return True
     return False
 
+####################################################################################
+
+def ballistic_estimation():
+    global prev_state, curr_state, meas_state, G, prev_time, curr_time
+    if rospy.Time.now().to_sec() - prev_time > 0.3 and curr_state[5] != 0:
+        dt = curr_time - old_time
+        print(dt)
+        vx = (curr_state[0] - old_x)/dt
+        vz = (curr_state[1] - old_z)/dt
+        if vz != 0:
+            t = -curr_state[2]/vz
+            vy = (curr_state[1] - old_y + 9.81*t**2/2.)/t
+            index = 0
+            print("BALLISTIC")
+            print(vx, vy, vz)
+        return True
+    return False
+
 ###################################################################################
 
 def plot_predicted():
+    global G, color, curr_x, curr_state
+    color.value = 1
+    delta = 0.01
+    time = 0
+    dt = curr_time - old_time
+    print(dt)
+    vx = (curr_state[0] - old_x)/dt
+    vz = (curr_state[1] - old_z)/dt
+    if vz != 0:
+        t = -curr_state[2]/vz
+        vy = (curr_state[1] - old_y + 9.81*t**2/2.)/t
+        while time < (-curr_state[2])/vz:
+            curr_x.value = old_x + vx * time
+            curr_y.value = old_y + vy * time - G * time**2 / 2. 
+            curr_z.value = old_z + vz * time
+            time += delta 
+            sleep(0.1)
+
+###################################################################################
+
+def ballistic_plot_predicted():
     global G, color, curr_x
     color.value = 1
     delta = 0.01
@@ -178,7 +232,7 @@ def plot_predicted():
 ###################################################################################
 
 def listener():
-    global prev_time, curr_state, curr_x, curr_y, curr_z, published, color, found
+    global prev_time, curr_state, curr_x, curr_y, curr_z, published, color
     rospy.init_node('ball_prediction', anonymous=True)
     prev_time = rospy.Time.now().to_sec()
     rospy.Subscriber('/sawyeet/ball_coords', Point, stateCallback)
@@ -192,7 +246,6 @@ def listener():
             plot_predicted()
             published.value = 1
             p.terminate()
-            print(found)
             exit(0)
         rate.sleep()
 

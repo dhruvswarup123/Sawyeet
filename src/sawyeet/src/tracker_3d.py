@@ -37,7 +37,7 @@ class PointcloudProcess:
         
         # Time sync
         ts = message_filters.ApproximateTimeSynchronizer([points_sub, image_sub, caminfo_sub],
-                                                          10, 0.1, allow_headerless=True)
+                                                          1, 0.1, allow_headerless=True)
         ts.registerCallback(self.callback)
 
 
