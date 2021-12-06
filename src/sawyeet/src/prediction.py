@@ -150,7 +150,7 @@ def estimation(curr_state):
     meas = np.array([float(meas_state[0]), float(meas_state[1]), float(meas_state[2])])
     #print(curr_state)
     print(np.round(meas,2), np.round(pub_state,2), np.round(curr_state[:3].reshape(-1),2))
-    publish_pose(curr_state)
+    publish_pose(meas_state)
 
 def listener():
     global prev_time, curr_state
