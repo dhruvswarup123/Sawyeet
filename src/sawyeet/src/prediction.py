@@ -39,7 +39,7 @@ zdata = []
 
 curr_x = Value(c_double, 0)
 curr_y = Value(c_double, 0)
-curr_z = Value(c_double, 5)
+curr_z = Value(c_double, 20)
 published = Value('i', 0)
 color = Value('i', 0)
 last = Value('i', 0)
@@ -78,7 +78,7 @@ def runGraph(curr_x, curr_y, curr_z, published, color, last):
 #PREDICTED OUTPUT GRAPHING
 
 def plot_predicted():
-    global G, color, curr_x
+    global G, color, curr_x, curr_y, curr_z, curr_state
     color.value = 1
     delta = 0.01
     time = 0
@@ -119,7 +119,8 @@ def stateCallback(coords):
         print("Initializing/Re-Initializing")
         intialize(coords)
         
-    else:
+    elif IS_INITIALIZED and abs(coords.x - meas_state[0]) < 0.5 and abs(coords.y - meas_state[1]) < 0.5 and abs(coords.z - meas_state[2]) < 0.5:
+
         meas_state = np.zeros((6,1))
         meas_state[0] = coords.x
         meas_state[1] = coords.y
@@ -140,7 +141,7 @@ def stateCallback(coords):
         pred_state[4] = prev_state[4] - G * dT
         pred_state[5] = prev_state[5]
 
-        update_matrix = np.array([[ALPHA],[BETA],[ALPHA],[ALPHA],[BETA],[ALPHA]])
+        update_matrix = np.array([[ALPHA],[ALPHA],[ALPHA],[BETA],[BETA],[BETA]])
         curr_state = pred_state + update_matrix * (meas_state - pred_state)
 
         prev_state = curr_state
