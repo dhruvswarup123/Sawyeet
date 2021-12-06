@@ -37,7 +37,7 @@ class PointcloudProcess:
         
         # Time sync
         ts = message_filters.ApproximateTimeSynchronizer([points_sub, image_sub, caminfo_sub],
-                                                          10, 0.1, allow_headerless=True)
+                                                          1, 0.1, allow_headerless=True)
         ts.registerCallback(self.callback)
 
 
@@ -118,7 +118,7 @@ def main():
 
     rospy.init_node('sawyeet_tracker')
     process = PointcloudProcess(ALIGNED_DEPTH_TOPIC, RGB_IMAGE_TOPIC, CAM_INFO_TOPIC, POINTS_PUB_TOPIC)
-    r = rospy.Rate(15)
+    r = rospy.Rate(30)
 
     while not rospy.is_shutdown():
         process.publish_once_from_queue()
