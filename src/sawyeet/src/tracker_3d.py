@@ -118,7 +118,7 @@ def main():
 
     rospy.init_node('sawyeet_tracker')
     process = PointcloudProcess(ALIGNED_DEPTH_TOPIC, RGB_IMAGE_TOPIC, CAM_INFO_TOPIC, POINTS_PUB_TOPIC)
-    r = rospy.Rate(15)
+    r = rospy.Rate(30)
 
     while not rospy.is_shutdown():
         process.publish_once_from_queue()
