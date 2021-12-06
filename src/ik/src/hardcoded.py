@@ -1,12 +1,9 @@
-#!/usr/bin/env python
 import rospy
-from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest, GetPositionIKResponse
+import intera_interface
+from intera_interface import CHECK_VERSION
 from geometry_msgs.msg import PoseStamped
-from moveit_commander import MoveGroupCommander
+
 import numpy as np
-from numpy import linalg
-import sys
-from baxter_interface import gripper as robot_gripper
 
 latest_pose = PoseStamped()
 
@@ -32,6 +29,19 @@ eepos_real_to_angles = {
     (1.1, 2.3): [],
     (0, 1.4): [],
 } 
+
+def angles_to_dicct(angles):
+    dicct_map = {
+        'right_j0': angles[0], 
+        'right_j1': angles[1], 
+        'right_j2': angles[2], 
+        'right_j3': angles[3], 
+        'right_j4': angles[4], 
+        'right_j5': angles[5], 
+        'right_j6': angles[6]
+        }
+    
+    return dicct_map
 
 def callback(poser):
     global latest_pose
@@ -60,73 +70,41 @@ def callback(poser):
             closest_joint_angles = joint_angles
             closest_dist = dist
 
-    final_joint_angles = closest_joint_angles
+    final_joint_angles = angles_to_dicct(closest_joint_angles)
 
 
 def main():
-    global latest_pose
-    robo = "sawyer"
-    rospy.wait_for_service('compute_ik')
-    arm = 'right'
-    compute_ik = rospy.ServiceProxy('compute_ik', GetPositionIK)
+    rospy.init_node("hardcoded_sawyeet")
+    rs = intera_interface.RobotEnable(CHECK_VERSION)
+    init_state = rs.state().enabled
 
+    def clean_shutdown():
+        print("\nExiting example...")
+        if not init_state:
+            print("Disabling robot...")
+            rs.disable()
+    rospy.on_shutdown(clean_shutdown)
+
+    print("Enabling robot... ")
+    rs.enable()
+    right = intera_interface.Limb('right')
+    right.move_to_neutral(timeout=5.0, speed=1)
+    right.set_joint_position_speed(speed=1)
+
+    r = rospy.Rate(30)
     while not rospy.is_shutdown():
-        request = GetPositionIKRequest()
-        request.ik_request.group_name = arm + "_arm"
+        counter = 0
+        while(counter <= 500):   
+            right.set_joint_positions(final_joint_angles)
+            rospy.sleep(0.001)
+            counter += 1
 
-        link = arm + "_gripper"
-        if robo == 'sawyer':
-            link += '_tip'
-
-        request.ik_request.ik_link_name = link
-        request.ik_request.attempts = 20
-        request.ik_request.pose_stamped.header.frame_id = "base"
-        
-        # Set the desired orientation for the end effector HERE
-        request.ik_request.pose_stamped.pose.position.x = 0.6
-        request.ik_request.pose_stamped.pose.position.y = latest_pose.pose.position.x
-        request.ik_request.pose_stamped.pose.position.z = latest_pose.pose.position.y       
-        request.ik_request.pose_stamped.pose.orientation.x = 1
-        request.ik_request.pose_stamped.pose.orientation.y = 0
-        request.ik_request.pose_stamped.pose.orientation.z = 0.0
-        request.ik_request.pose_stamped.pose.orientation.w =  0
-
-        
-        try:
-            # Send the request to the service
-            response = compute_ik(request)
-            
-            # Print the response HERE
-            print(response)
-            group = MoveGroupCommander(arm + "_arm")
-
-            # Setting position and orientation target
-            group.set_pose_target(request.ik_request.pose_stamped)
-
-            # Plan IK and execute
-            group.go()
-
-            print('Calibrating...')
-            #left_gripper.calibrate()
-            #rospy.sleep(2.0)
-
-            print('Closing...')
-            #rospy.sleep(1.0)
-
-            
-        except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
-
-def listener():
-    global latest_pose
-    rospy.init_node('sawyeet_hardcoded_ik', anonymous = True)
-    rospy.Subscriber('/sawyeet/des_end', PoseStamped, callback)
-    r = rospy.Rate(15)
-    #initialize()
-    while not rospy.is_shutdown():
-        main()
         r.sleep()
+        print("Moved...")
+    
+    print("Done.")
 
-# Python's syntax for a main() method
+
 if __name__ == '__main__':
-    listener()
+    rospy.Subscriber('/sawyeet/des_end', PoseStamped, callback)
+    main()
