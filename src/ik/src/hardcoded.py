@@ -28,6 +28,11 @@ eepos_to_angles = {
     (2, 2): [],
 } 
 
+eepos_real_to_angles = {
+    (1.1, 2.3): [],
+    (0, 1.4): [],
+} 
+
 def callback(poser):
     global latest_pose
     global final_joint_angles
@@ -38,10 +43,18 @@ def callback(poser):
     closest_joint_angles = eepos_to_angles[(0, 0)]
     closest_dist = float('inf')
 
-    for block_coords, joint_angles in eepos_to_angles.items():
-        block_coords_np = np.array(block_coords)
-        real_block_coords = bottom_left_coord_xy + np.multiply(block_coords_np, paddle_size)
-        dist = np.linalg.norm(real_block_coords - currpos)
+    # for block_coords, joint_angles in eepos_to_angles.items():
+    #     block_coords_np = np.array(block_coords)
+    #     real_block_coords = bottom_left_coord_xy + np.multiply(block_coords_np, paddle_size)
+    #     dist = np.linalg.norm(real_block_coords - currpos)
+
+    #     if (dist < closest_dist):
+    #         closest_joint_angles = joint_angles
+    #         closest_dist = dist
+
+    for coords, joint_angles in eepos_real_to_angles.items():
+        real_coords_np = np.array(coords)
+        dist = np.linalg.norm(real_coords_np - currpos)
 
         if (dist < closest_dist):
             closest_joint_angles = joint_angles
