@@ -119,7 +119,8 @@ def stateCallback(coords):
         print("Initializing/Re-Initializing")
         intialize(coords)
         
-    elif IS_INITIALIZED and abs(coords.x - meas_state[0]) < 0.5 and abs(coords.y - meas_state[1]) < 0.5 and abs(coords.z - meas_state[2]) < 0.5:
+    else:
+    #IS_INITIALIZED and abs(coords.x - meas_state[0]) < 0.5 and abs(coords.y - meas_state[1]) < 0.5 and abs(coords.z - meas_state[2]) < 0.5:
 
         meas_state = np.zeros((6,1))
         meas_state[0] = coords.x
@@ -166,7 +167,7 @@ def publish_pose(pred_state):
 def estimation():
     global prev_state, curr_state, meas_state, G
     if rospy.Time.now().to_sec() - prev_time > 0.3 and curr_state[5] != 0:
-        pred_time = -(curr_state[2])/curr_state[5]
+        pred_time = -(1+curr_state[2])/curr_state[5]
         #print(pred_time)
         pub_state = np.zeros(3)
         pub_state[0] = curr_state[0] + curr_state[3] * pred_time
