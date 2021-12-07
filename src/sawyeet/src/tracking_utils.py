@@ -48,7 +48,7 @@ def get_mask(frame, color=COLOR):
 
     #    full_mask = cv2.inRange(frame, lower, upper)
     
-    full_mask = cv2.erode(full_mask, None, iterations=2)
+    full_mask = cv2.erode(full_mask, None, iterations=1)
     # full_mask = cv2.dilate(full_mask, None, iterations=1)
     # full_mask = cv2.morphologyEx(full_mask, cv2.MORPH_OPEN, np.ones((30, 30), np.uint8))
 
