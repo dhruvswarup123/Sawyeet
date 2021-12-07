@@ -11,7 +11,7 @@ latest_pose = PoseStamped()
 # Hardcode these
 bottom_left_coord_xy = np.array([0, 0]) # in irl coords
 paddle_size = np.array([0.1, 0.2]) # width, height
-final_joint_angles = None # For the actual movement
+final_xy = None
 
 # Here 0,0 is the bottom left square
 eepos_to_angles = {
@@ -27,10 +27,17 @@ eepos_to_angles = {
 } 
 
 eepos_real_to_angles = {
-    (-0.572, 0.297): {'right_j6': 1.680861328125, 'right_j5': 1.3232978515625, 'right_j4': 0.318568359375, 'right_j3': 1.0760712890625, 'right_j2': -0.55458984375, 'right_j1': -0.7719267578125, 'right_j0': -0.8749248046875},
-    ( -0.645, -0.064): {'right_j6': 1.40146875, 'right_j5': 1.1433193359375, 'right_j4': 0.662890625, 'right_j3': 0.4694990234375, 'right_j2': -0.6768037109375, 'right_j1': 0.08253515625, 'right_j0': -0.909541015625},
-    (0.482, 0.236): {'right_j6': 4.3019248046875, 'right_j5': 1.34025, 'right_j4': 1.0057919921875, 'right_j3': 1.0442998046875, 'right_j2': -1.2243447265625, 'right_j1': -0.2824228515625, 'right_j0': 0.900169921875},
+    (0.087, -0.020): {'right_j6': 1.0524443359375, 'right_j5': 0.754802734375, 'right_j4': 0.754767578125, 'right_j3': 1.5055888671875, 'right_j2': -0.5154580078125, 'right_j1': -0.425685546875, 'right_j0': 0.2074306640625},
+    (0.059, 0.301): {'right_j6': 0.976515625, 'right_j5': 1.3535986328125, 'right_j4': 0.8579912109375, 'right_j3': 1.366412109375, 'right_j2': -1.071869140625, 'right_j1': -0.6286982421875, 'right_j0': 0.3392236328125},
+    (0.019, -0.273): {'right_j6': 0.4086533203125, 'right_j5': 0.7073935546875, 'right_j4': 1.8604873046875, 'right_j3': 1.453560546875, 'right_j2': -0.7272197265625, 'right_j1': 0.31555859375, 'right_j0': 0.39858984375},
+    (-0.241, -0.009): {'right_j6': 0.000306640625, 'right_j5': 1.6335859375, 'right_j4': 2.0639892578125, 'right_j3': 1.544904296875, 'right_j2': -1.554279296875, 'right_j1': 0.4999326171875, 'right_j0': -0.09034765625},
+    (-0.251, 0.253): {'right_j6': -0.370611328125, 'right_j5': 2.2945869140625, 'right_j4': 1.8677431640625, 'right_j3': 1.9248349609375, 'right_j2': -2.189185546875, 'right_j1': 0.445365234375, 'right_j0': -0.3913232421875},
+    (-0.320, -0.256): {'right_j6': 0.2523154296875, 'right_j5': 1.61895703125, 'right_j4': 2.9698857421875, 'right_j3': 1.498650390625, 'right_j2': -2.3183740234375, 'right_j1': 1.2897109375, 'right_j0': -0.613625},
+    (0.251, 0.050): {'right_j6': 0.9263046875, 'right_j5': 2.395021484375, 'right_j4': 2.7725546875, 'right_j3': 1.9592509765625, 'right_j2': -2.761234375, 'right_j1': 1.0036767578125, 'right_j0': -0.0825205078125},
+    (0.269, 0.253) : {'right_j6': 0.567470703125, 'right_j5': 2.73820703125, 'right_j4': 2.2549423828125, 'right_j3': 1.9442177734375, 'right_j2': -2.77762109375, 'right_j1': 0.5726181640625, 'right_j0': -0.020119140625},
+    (0.252, -0.271): {'right_j6': 1.1760283203125, 'right_j5': 1.74505859375, 'right_j4': 2.9728037109375, 'right_j3': 1.4405576171875, 'right_j2': -2.8806767578125, 'right_j1': 1.2680810546875, 'right_j0': -0.159740234375}
 } 
+final_joint_angles = eepos_real_to_angles.values()[0] # For the actual movement
 
 def angles_to_dicct(angles):
     dicct_map = {
@@ -48,12 +55,14 @@ def angles_to_dicct(angles):
 def callback(poser):
     global latest_pose
     global final_joint_angles
+    global final_xy
     latest_pose = poser
 
     currpos = np.array([poser.pose.position.x, poser.pose.position.y])
 
     closest_joint_angles = eepos_to_angles[(0, 0)]
     closest_dist = float('inf')
+    closest_xy = float('inf')
 
     # for block_coords, joint_angles in eepos_to_angles.items():
     #     block_coords_np = np.array(block_coords)
@@ -71,11 +80,16 @@ def callback(poser):
         if (dist < closest_dist):
             closest_joint_angles = joint_angles
             closest_dist = dist
+            closest_xy = coords
 
     # final_joint_angles = angles_to_dicct(closest_joint_angles)
     final_joint_angles = closest_joint_angles
+    final_xy = closest_xy
 
 def main():
+    global final_xy
+    global final_joint_angles
+
     rospy.init_node("hardcoded_sawyeet")
     rs = intera_interface.RobotEnable(CHECK_VERSION)
     init_state = rs.state().enabled
@@ -90,22 +104,23 @@ def main():
     print("Enabling robot... ")
     rs.enable()
     right = intera_interface.Limb('right')
-    # print(right.joint_angles())
-    # return
+    print(right.joint_angles())
 
-    right.move_to_neutral(timeout=5.0, speed=1)
-    right.set_joint_position_speed(speed=1)
+    # right.move_to_neutral(timeout=5.0, speed=1)
+    right.set_joint_position_speed(speed=0.6)
+    rospy.sleep(2)
 
-    # return
+    #return
 
-    r = rospy.Rate(30)
+    r = rospy.Rate(15)
     while not rospy.is_shutdown():
         counter = 0
-        print(final_joint_angles)
+        print(final_xy)
 
         while(counter <= 500):   
-            # right.set_joint_positions(final_joint_angles)
-            # rospy.sleep(0.001)
+            right.set_joint_position_speed(speed=1)
+            right.set_joint_positions(final_joint_angles)
+            rospy.sleep(0.001)
             counter += 1
 
         r.sleep()

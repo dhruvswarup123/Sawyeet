@@ -4,7 +4,7 @@ import cv2
 import imutils
 import numpy as np
 
-RADIUS_THRESHOLD = 10
+RADIUS_THRESHOLD = 5
 COLOR = "tennis"
 
 def get_mask(frame, color=COLOR):
@@ -37,8 +37,8 @@ def get_mask(frame, color=COLOR):
         full_mask = cv2.inRange(frame, lower, upper)
 
     elif color == "tennis":
-        lower = (25, 100, 60)
-        upper = (75, 255, 255)
+        lower = (25, 100, 80)
+        upper = (90, 255, 255)
 
         full_mask = cv2.inRange(frame, lower, upper)
     
@@ -49,7 +49,7 @@ def get_mask(frame, color=COLOR):
     #    full_mask = cv2.inRange(frame, lower, upper)
     
     full_mask = cv2.erode(full_mask, None, iterations=2)
-    # full_mask = cv2.dilate(full_mask, None, iterations=2)
+    # full_mask = cv2.dilate(full_mask, None, iterations=1)
     # full_mask = cv2.morphologyEx(full_mask, cv2.MORPH_OPEN, np.ones((30, 30), np.uint8))
 
     return full_mask
@@ -60,8 +60,8 @@ def get_centroid(frame, color=COLOR):
 
     # Blur the frame and convert to hsv color space
     # frame = cv2.GaussianBlur(frame, (15, 15), 0)
-    #frame = cv2.medianBlur(frame, 5)
-    frame = cv2.GaussianBlur(frame, (5, 5), 3)
+    # frame = cv2.medianBlur(frame, 5)
+    # frame = cv2.GaussianBlur(frame, (3, 3), 2)
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # Get mask that removes pixels that are not that color
@@ -85,12 +85,12 @@ def get_centroid(frame, color=COLOR):
         # x, y is center of enclosing circle, NOT the centroid
         ((x, y), radius) = cv2.minEnclosingCircle(c)
         if radius < RADIUS_THRESHOLD:
-            return None, None
+            return None, None, None
 
         M = cv2.moments(c)
         center = [int(x), int(y)]
 
-    return center, c
+    return center, c, mask
 
 # pts = []
 # pub = rospy.Publisher('centroids', Point, queue_size=10)

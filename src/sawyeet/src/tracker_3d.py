@@ -59,7 +59,7 @@ class PointcloudProcess:
             depths, image, intrinsic_matrix = self.messages.pop()
 
             tracking = np.zeros((image.shape[0],image.shape[1],3), np.uint8)
-            center, points = get_centroid(image)
+            center, points, mask = get_centroid(image)
             if center:
 
                 image[max(0,center[1]-20):min(image.shape[0], center[1]+20), max(0,center[0]-20):min(image.shape[1], center[0]+20)] = (0,255,0)
@@ -104,7 +104,8 @@ class PointcloudProcess:
 
             cv2.imshow("depth", depths)
             cv2.imshow("image", image)
-            #cv2.imshow("tracking", tracking)
+            # cv2.imshow("image1", mask)
+            # cv2.imshow("tracking", tracking)
             cv2.waitKey(1)
         
 
@@ -118,7 +119,7 @@ def main():
 
     rospy.init_node('sawyeet_tracker')
     process = PointcloudProcess(ALIGNED_DEPTH_TOPIC, RGB_IMAGE_TOPIC, CAM_INFO_TOPIC, POINTS_PUB_TOPIC)
-    r = rospy.Rate(30)
+    r = rospy.Rate(60)
 
     while not rospy.is_shutdown():
         process.publish_once_from_queue()
