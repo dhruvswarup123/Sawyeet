@@ -21,7 +21,7 @@ NUM_FRAMES = 5
 G = 11
 ALPHA = float(sys.argv[1])
 BETA = float(sys.argv[2])
-DIST_Z = 69*2.54/100
+DIST_Z = 46*2.54/100
 
 ###################################################################################
 #GLOBAL VARIABLES
@@ -40,7 +40,7 @@ zdata = []
 
 curr_x = Value(c_double, 0)
 curr_y = Value(c_double, 0)
-curr_z = Value(c_double, 20)
+curr_z = Value(c_double, 20*100/2.54)
 published = Value('i', 0)
 color = Value('i', 0)
 last = Value('i', 0)
@@ -59,17 +59,17 @@ def runGraph(curr_x, curr_y, curr_z, published, color, last):
 
             if color.value == 0:
                 last.value = last.value + 1
-                ax.scatter3D(np.array(xdata), -np.array(zdata), np.array(ydata), c ='g')
+                ax.scatter3D(np.array(xdata)*100/2.54, -np.array(zdata)*100/2.54, np.array(ydata)*100/2.54, c ='g')
             else:
-                ax.scatter3D(np.array(xdata[:last.value]), -np.array(zdata[:last.value]), np.array(ydata[:last.value]), c = 'g')
-                ax.scatter3D(np.array(xdata[last.value:]), -np.array(zdata[last.value:]), np.array(ydata[last.value:]), c = 'r')
+                ax.scatter3D(np.array(xdata[:last.value])*100/2.54, -np.array(zdata[:last.value])*100/2.54, np.array(ydata[:last.value])*100/2.54, c = 'g')
+                ax.scatter3D(np.array(xdata[last.value:])*100/2.54, -np.array(zdata[last.value:])*100/2.54, np.array(ydata[last.value:])*100/2.54, c = 'r')
 
             ax.set_xlabel('x')
             ax.set_ylabel('z')
             ax.set_zlabel('y')
-            ax.set_xlim([-2, 2])
-            ax.set_ylim([-5, 2])
-            ax.set_zlim([-2, 2])
+            ax.set_xlim([-2*100/2.54, 2*100/2.54])
+            ax.set_ylim([-5*100/2.54, 2*100/2.54])
+            ax.set_zlim([-2*100/2.54, 2*100/2.54])
 
     ani = FuncAnimation(plt.gcf(), animate, interval=1, repeat=False)
     plt.show()
@@ -152,8 +152,8 @@ def stateCallback(coords):
 
 def publish_pose(pred_state):
     des_pose = PoseStamped()
-    des_pose.pose.position.x = pred_state[0]
-    des_pose.pose.position.y = pred_state[1]+.13
+    des_pose.pose.position.x = pred_state[0] + 0.15
+    des_pose.pose.position.y = pred_state[1] - 0.55
     des_pose.pose.position.z = pred_state[2]
     des_pose.pose.orientation.x = 0.
     des_pose.pose.orientation.y = 0.
@@ -168,7 +168,7 @@ def estimation():
     global prev_state, curr_state, meas_state, G, DIST_Z
     if rospy.Time.now().to_sec() - prev_time > 0.3 and curr_state[5] != 0:
         pred_time = -(DIST_Z+curr_state[2])/(curr_state[5])
-        #print(pred_time)
+        print(pred_time)
         pub_state = np.zeros(3)
         pub_state[0] = curr_state[0] + curr_state[3] * pred_time
         pub_state[1] = curr_state[1] + curr_state[4] * pred_time - G * pred_time**2 / 2. 

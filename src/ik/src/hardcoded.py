@@ -40,7 +40,7 @@ eepos_real_to_angles = {
     (0.529, 0.014): {'right_j6': 1.47810546875, 'right_j5': 2.1024208984375, 'right_j4': 2.851724609375, 'right_j3': 1.5191689453125, 'right_j2': -2.7551435546875, 'right_j1': 0.8544521484375, 'right_j0': 0.30418359375},
     (0.499, -0.266): {'right_j6': 1.54477734375, 'right_j5': 1.5748662109375, 'right_j4': 2.9750888671875, 'right_j3': 1.2560107421875, 'right_j2': -2.7505048828125, 'right_j1': 1.1523017578125, 'right_j0': 0.2597724609375},
 } 
-final_joint_angles = eepos_real_to_angles[(0.499, -0.266)] # For the actual movement
+final_joint_angles = None # eepos_real_to_angles[(0.499, -0.266)] # For the actual movement
 center_pos = eepos_real_to_angles[(-0.017, 0.050)]
 
 def angles_to_dicct(angles):
@@ -79,7 +79,7 @@ def callback(poser):
 
     for coords, joint_angles in eepos_real_to_angles.items():
         real_coords_np = np.array(coords)
-        dist = np.linalg.norm(real_coords_np - currpos)
+        dist = np.linalg.norm(real_coords_np[0] - currpos[0])
 
         if (dist < closest_dist):
             closest_joint_angles = joint_angles
@@ -124,13 +124,15 @@ def main():
     r = rospy.Rate(15)
 
     while not rospy.is_shutdown():
+        if final_joint_angles is None:
+            continue 
         counter = 0
         print(final_xy)
 
         while(counter <= 500):   
             right.set_joint_position_speed(speed=1)
             right.set_joint_positions(final_joint_angles)
-            rospy.sleep(0.001)
+            rospy.sleep(0.0001)
             counter += 1
 
         r.sleep()
@@ -143,8 +145,8 @@ def move_to_center(right):
     counter = 0
     print("centering...")
 
-    while(counter <= 500):   
-        right.set_joint_position_speed(speed=1)
+    while(counter <= 1500):   
+        right.set_joint_position_speed(speed=0.6)
         right.set_joint_positions(center_pos)
         rospy.sleep(0.001)
         counter += 1
