@@ -36,7 +36,9 @@ curr_state = np.zeros((6,1))
 meas_state = np.zeros((6,1))
 pred_state = np.zeros((6,1))
 prev_time = None
-prev_z = 0
+#prev_x = 0
+#prev_y = 0
+#prev_z = 0
 
 xdata = []
 ydata = []
@@ -98,7 +100,7 @@ def plot_predicted():
 #INITIALIZATIOon
 
 def intialize(coords):
-    global prev_state, prev_time, IS_INITIALIZED, curr_state, pred_state
+    global prev_state, prev_time, IS_INITIALIZED, curr_state, pred_state, prev_z, meas_state
     prev_time = rospy.Time.now().to_sec() 
     prev_state[0] = coords.x
     prev_state[1] = coords.y
@@ -106,8 +108,10 @@ def intialize(coords):
     prev_state[3] = 0.
     prev_state[4] = 0.
     prev_state[5] = 0.
+    prev_z = coords.y
     curr_state = prev_state
     pred_state = prev_state
+    meas_state = prev_state
     IS_INITIALIZED = True
     return
 
@@ -115,7 +119,7 @@ def intialize(coords):
 #STATE UPDATE AND KALMAN FILTER
 
 def stateCallback(coords):
-    global prev_state, prev_time, pred_state, curr_state, meas_state, IS_INITIALIZED, X_N, G, curr_x, curr_y, curr_z, Y_N, VX_N, VY_N, VZ_N
+    global prev_state, prev_time, pred_state, curr_state, meas_state, IS_INITIALIZED, X_N, G, curr_x, curr_y, curr_z, Y_N, VX_N, VY_N, VZ_N, prev_z
     curr_time = rospy.Time.now().to_sec() 
     dT = (curr_time - prev_time)
 
@@ -126,8 +130,8 @@ def stateCallback(coords):
         print("Initializing/Re-Initializing")
         intialize(coords)
         
-    #elif IS_INITIALIZED and abs(coords.x - meas_state[0]) < 0.5 and abs(coords.y - meas_state[1]) < 0.5 and abs(coords.z - meas_state[2]) < 0.5:
-    else:
+    elif IS_INITIALIZED and abs(coords.x - meas_state[0]) < 0.5 and abs(coords.y - meas_state[1]) < 0.5 and abs(coords.z - meas_state[2]) < 0.5:
+    #else:
         meas_state = np.zeros((6,1))
         meas_state[0] = coords.x
         meas_state[1] = coords.y
@@ -148,12 +152,12 @@ def stateCallback(coords):
         pred_state[4] = prev_state[4] - G * dT
         pred_state[5] = prev_state[5]
 
-        print(coords.z)
-        #print(pred_state)
-
         update_matrix = np.array([[X_N],[Y_N],[X_N],[VX_N],[VY_N],[VZ_N]])
         curr_state = pred_state + update_matrix * (meas_state - pred_state)
-
+        #print(coords.y, prev_z)
+        print("Velocities START")
+        print(curr_state[3:])
+        print("Velocities END")
         prev_state = curr_state
 
 ###################################################################################
@@ -177,13 +181,13 @@ def estimation():
     global prev_state, curr_state, meas_state, G, DIST_Z
     if rospy.Time.now().to_sec() - prev_time > 0.3 and curr_state[5] != 0:
         pred_time = -(DIST_Z+curr_state[2])/(curr_state[5])
-        #print(pred_time)
+        print(pred_time)
         #print(curr_state[3], curr_state[4], curr_state[5])
         pub_state = np.zeros(3)
         pub_state[0] = curr_state[0] + curr_state[3] * pred_time
         pub_state[1] = curr_state[1] + curr_state[4] * pred_time - G * pred_time**2 / 2. 
         meas = np.array([float(meas_state[0]), float(meas_state[1]), float(meas_state[2])])
-        #print(np.round(meas,2), np.round(pub_state,2)*100/2.54, np.round(curr_state[:3].reshape(-1),2))
+        print(np.round(meas,2), np.round(pub_state,2)*100/2.54, np.round(curr_state[:3].reshape(-1),2))
         publish_pose(pub_state)
         return True
     return False

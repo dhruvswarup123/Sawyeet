@@ -61,21 +61,32 @@ class PointcloudProcess:
             tracking = np.zeros((image.shape[0],image.shape[1],3), np.uint8)
             center, points, mask = get_centroid(image)
             if center:
-
-                image[max(0,center[1]-20):min(image.shape[0], center[1]+20), max(0,center[0]-20):min(image.shape[1], center[0]+20)] = (0,255,0)
-
                 depth = 0
                 total = 0
-                print("center depth", depths[center[1], center[0]])
-                for point_array in points:
-                    for point in point_array:
-                        depth += depths[point[1], point[0]]
-                        total += 1
-                if total != 0:
-                    avg_depth = depth / total * 0.001
+                avg_depth = 0   
+                image[max(0,center[1]-20):min(image.shape[0], center[1]+20), max(0,center[0]-20):min(image.shape[1], center[0]+20)] = (0,255,0)
+                for i in range(5):
+                    for j in range(5):
+                        x = center[0]-5+i
+                        y = center[1]-5+j
+                        if mask[y][x] != 0:
+                            depth += depths[y, x]
+                            total += 1
+                if total:
+                    print("avg", depth/total)
+                    avg_depth = depth/total
+                depth = 0
+                total = 0
+                #print("center depth", depths[center[1], center[0]])
+                #for point_array in points:
+                #    for point in point_array:
+                #        depth += depths[point[1], point[0]]
+                #        total += 1
+                #if total != 0:
+                #    avg_depth = depth / total * 0.001
 
                 homog = np.array([center[0], center[1], 1])
-                homog_X = depths[center[1], center[0]] * np.dot(np.linalg.inv(intrinsic_matrix), homog) * 0.001
+                homog_X = avg_depth * np.dot(np.linalg.inv(intrinsic_matrix), homog) * 0.001
                 homog_X += np.array([0.0106, 0.0175, 0.0125]) # WRT center of realsense
 
                 # Convert to sawyers base
