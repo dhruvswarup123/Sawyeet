@@ -54,7 +54,7 @@ eepos_real_to_angles = {
 } 
 
 final_joint_angles = None#eepos_real_to_angles[(0.049, -0.039)] # For the actual movement
-center_pos = eepos_real_to_angles[(0.049, -0.039)]
+center_pos = eepos_real_to_angles[(-0.031, 0.312)]
 # center_pos = eepos_real_to_angles[(-0.017, 0.050)]
 
 def angles_to_dicct(angles):
@@ -141,11 +141,16 @@ def main():
         counter = 0
         print(final_xy)
 
-        while(counter <= 500):   
+        while(counter <= 1000):   
             right.set_joint_position_speed(speed=1.0)
             right.set_joint_positions(final_joint_angles)
-            rospy.sleep(0.00001)
+            rospy.sleep(0.0001)
             counter += 1
+
+        # raw_input("Done. Waiting...")
+        # rospy.sleep(5)
+        # final_joint_angles = center_pos
+        # move_to_center(right)
 
         r.sleep()
     
@@ -157,8 +162,8 @@ def move_to_center(right):
     counter = 0
     print("centering...")
 
-    while(counter <= 1500):   
-        right.set_joint_position_speed(speed=0.6)
+    while(counter <= 1000):   
+        right.set_joint_position_speed(speed=.6)
         right.set_joint_positions(center_pos)
         rospy.sleep(0.001)
         counter += 1

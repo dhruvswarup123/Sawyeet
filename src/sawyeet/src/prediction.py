@@ -24,7 +24,7 @@ VX_N = float(sys.argv[2])
 VY_N = float(sys.argv[3])
 Y_N = float(sys.argv[4])
 VZ_N = float(sys.argv[5])
-DIST_Z = 64*2.54/100 
+DIST_Z = 76*2.54/100
 
 ###################################################################################
 #GLOBAL VARIABLES
@@ -46,7 +46,7 @@ zdata = []
 
 curr_x = Value(c_double, 0)
 curr_y = Value(c_double, 0)
-curr_z = Value(c_double, 20*100/2.54)
+curr_z = Value(c_double, 20)#*100/2.54)
 published = Value('i', 0)
 color = Value('i', 0)
 last = Value('i', 0)
@@ -65,17 +65,17 @@ def runGraph(curr_x, curr_y, curr_z, published, color, last):
 
             if color.value == 0:
                 last.value = last.value + 1
-                ax.scatter3D(np.array(xdata)*100/2.54, -np.array(zdata)*100/2.54, np.array(ydata)*100/2.54, c ='g')
+                ax.scatter3D(np.array(xdata), -np.array(zdata), np.array(ydata), c ='g')
             else:
-                ax.scatter3D(np.array(xdata[:last.value])*100/2.54, -np.array(zdata[:last.value])*100/2.54, np.array(ydata[:last.value])*100/2.54, c = 'g')
-                ax.scatter3D(np.array(xdata[last.value:])*100/2.54, -np.array(zdata[last.value:])*100/2.54, np.array(ydata[last.value:])*100/2.54, c = 'r')
+                ax.scatter3D(np.array(xdata[:last.value]), -np.array(zdata[:last.value]), np.array(ydata[:last.value]), c = 'g')
+                ax.scatter3D(np.array(xdata[last.value:]), -np.array(zdata[last.value:]), np.array(ydata[last.value:]), c = 'r')
 
             ax.set_xlabel('x')
             ax.set_ylabel('z')
             ax.set_zlabel('y')
-            ax.set_xlim([-2*100/2.54, 2*100/2.54])
-            ax.set_ylim([-5*100/2.54, 2*100/2.54])
-            ax.set_zlim([-2*100/2.54, 2*100/2.54])
+            ax.set_xlim([-2, 2])
+            ax.set_ylim([-5, 2])
+            ax.set_zlim([-2, 2])
 
     ani = FuncAnimation(plt.gcf(), animate, interval=1, repeat=False)
     plt.show()
@@ -167,7 +167,7 @@ def publish_pose(pred_state):
     des_pose = PoseStamped()
     des_pose.pose.position.x = pred_state[0] 
     des_pose.pose.position.y = pred_state[1]
-    des_pose.pose.position.z = pred_state[2] + 0.14*2.54
+    des_pose.pose.position.z = pred_state[2]+20*2.54/100
     des_pose.pose.orientation.x = 0.
     des_pose.pose.orientation.y = 0.
     des_pose.pose.orientation.z = 0.
@@ -187,7 +187,7 @@ def estimation():
         pub_state[0] = curr_state[0] + curr_state[3] * pred_time
         pub_state[1] = curr_state[1] + curr_state[4] * pred_time - G * pred_time**2 / 2. 
         meas = np.array([float(meas_state[0]), float(meas_state[1]), float(meas_state[2])])
-        print(np.round(meas,2), np.round(pub_state,2)*100/2.54, np.round(curr_state[:3].reshape(-1),2))
+        print(np.round(meas,2), np.round(pub_state,2), np.round(curr_state[:3].reshape(-1),2))
         publish_pose(pub_state)
         return True
     return False

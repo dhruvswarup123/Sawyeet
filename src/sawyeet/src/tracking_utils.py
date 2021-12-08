@@ -37,8 +37,8 @@ def get_mask(frame, color=COLOR):
         full_mask = cv2.inRange(frame, lower, upper)
 
     elif color == "tennis":
-        lower = (25, 100, 80)
-        upper = (90, 255, 255)
+        lower = (30, 80, 40)
+        upper = (80, 255, 255)
 
         full_mask = cv2.inRange(frame, lower, upper)
     
@@ -48,9 +48,9 @@ def get_mask(frame, color=COLOR):
 
     #    full_mask = cv2.inRange(frame, lower, upper)
     
-    full_mask = cv2.erode(full_mask, None, iterations=1)
-    # full_mask = cv2.dilate(full_mask, None, iterations=1)
-    # full_mask = cv2.morphologyEx(full_mask, cv2.MORPH_OPEN, np.ones((30, 30), np.uint8))
+    full_mask = cv2.erode(full_mask, None, iterations=2)
+    full_mask = cv2.dilate(full_mask, None, iterations=1)
+    # full_mask = cv2.morphologyEx(full_mask, cv2.MORPH_OPEN, np.ones((6, 6), np.uint8))
 
     return full_mask
 

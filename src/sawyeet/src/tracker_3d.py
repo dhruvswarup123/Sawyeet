@@ -37,7 +37,7 @@ class PointcloudProcess:
         
         # Time sync
         ts = message_filters.ApproximateTimeSynchronizer([points_sub, image_sub, caminfo_sub],
-                                                          1, 0.1, allow_headerless=True)
+                                                          10, 0.1, allow_headerless=True)
         ts.registerCallback(self.callback)
 
 
@@ -113,9 +113,12 @@ class PointcloudProcess:
 
                 self.points_pub.publish(point)
 
-            cv2.imshow("depth", depths)
+            # cv2.imshow("depth", depths)
             cv2.imshow("image", image)
-            # cv2.imshow("image1", mask)
+            try:
+                cv2.imshow("image1", mask)
+            except:
+                pass
             # cv2.imshow("tracking", tracking)
             cv2.waitKey(1)
         
